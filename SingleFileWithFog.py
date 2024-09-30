@@ -189,7 +189,10 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
             return path[::-1]  # Return the reversed path
 
         close_set.add(current)
+        '''
+        #debugging output
         print(f"Current Position: {current}, fscore: {fscore[current]}, gscore: {gscore[current]}")
+        '''
         reveal_adjacent_cells(current, grid, visibility_grid)
 
         for i, j in neighbors:
@@ -198,8 +201,10 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
                 # Print visibility and blockage status
                 visibility_status = visibility_grid[neighbor[0]][neighbor[1]]
                 blockage_status = grid[neighbor[0]][neighbor[1]]
+                '''
+                #debugging output
                 print(f"Checking Neighbor: {neighbor}, Visibility: {visibility_status}, Blockage: {blockage_status}")
-
+                '''
                 # Only consider visible and unblocked cells
                 if visibility_status == 1 and blockage_status == 0:
                     tentative_g_score = gscore[current] + 1
@@ -210,7 +215,10 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
                         gscore[neighbor] = tentative_g_score
                         fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
                         open_heap.push((fscore[neighbor], neighbor))
+                        '''
+                        #debugging output
                         print(f"Added Neighbor to Open Heap: {neighbor}, fscore: {fscore[neighbor]}")
+                        '''
 
     print("No path found in A* search.")
     return False  # No path found
@@ -219,14 +227,17 @@ def repeated_a_star_with_fog(grid, start, goal):
     visibility_grid = initialize_visibility_grid(grid, start, goal)
     current_pos = start
     full_path = [start]
-
+    '''
+    #debugging output
     print("Initial Grid:")
     print(grid)
+    '''
+    '''
+    #debugging output
     print(f"Start Position: {start}, Goal Position: {goal}")
-
+    '''
     while current_pos != goal:
-        # Update the grid dynamically
-        print(grid)
+
 
         # Perform A* search with fog of war (limited visibility)
         partial_path = a_star_search_with_fog(grid, visibility_grid, current_pos, goal)
@@ -271,16 +282,15 @@ def visualize_path(grid, path):
     plt.show()
 
 def main():
-    grid = generate_grid()
-    visualize_grid(grid)
-    start = find_unblocked_cell(grid)
-    goal = find_unblocked_cell(grid)
+    grids = save_grids(num_environments=NUM_ENVIRONMENTS)
+    start = find_unblocked_cell(grids[0])
+    goal = find_unblocked_cell(grids[0])
 
     print(f"Start: {start}, Goal: {goal}")
 
-    path = repeated_a_star_with_fog(grid, start, goal)
+    path = repeated_a_star_with_fog(grids[0], start, goal)
     if path:
-        visualize_path(grid, path)
+        visualize_path(grids[0], path)
     else:
         print("No path found")
 
