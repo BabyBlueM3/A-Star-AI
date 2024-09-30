@@ -1,11 +1,10 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-
-# Part 1: Setup
+import os
 
 class GridCreate:
-    def __init__(self, rows =101, cols= 101):
+    def __init__(self, rows=101, cols=101):
         self.rows = rows
         self.cols = cols
         self.grid = np.ones((rows, cols)) * -1  # Unknown cells (gray)
@@ -19,7 +18,7 @@ class GridCreate:
         while stack:
             row, col = stack.pop()
 
-            #unblocked (70% chance) or blocked (30% chance)
+            # Decide whether unblocked (70% chance) or blocked (30% chance)
             if random.random() < 0.7:
                 self.grid[row, col] = 1  # Unblocked (white)
             else:
@@ -29,11 +28,11 @@ class GridCreate:
             neighbors = self.get_neighbors(row, col)
             random.shuffle(neighbors)
             
-            #Univisted neighbors get added to stack
+            # Univisted neighbors get added to stack
             for r, c in neighbors:
                 if not self.visited[r, c]:
                     self.visited[r, c] = True
-                    stack.append((r,c))
+                    stack.append((r, c))
 
     def get_neighbors(self, row, col):
         neighbors = []
@@ -46,21 +45,27 @@ class GridCreate:
         if col < self.cols - 1:  # Right
             neighbors.append((row, col + 1))
         return neighbors
-    
-    def visualize(self, save_as_image=False, image_path="gridcreated.png"):
-        # Replace unknown (-1) with gray (0.5), unblocked (1) with white, and blocked (0) with black
-        cmap = plt.cm.get_cmap('gray', 3)
-        plt.imshow(self.grid, cmap=cmap, vmin=-1, vmax=1)
-        plt.colorbar(ticks=[-1, 0, 1], label="Cell Type")
-        plt.title(f"GridCreate {self.rows} x {self.cols}")
-        
-        if save_as_image:
-            plt.savefig(image_path, dpi=300, bbox_inches='tight')  # Save as image with high DPI
-            print(f"GridCreate saved as {image_path}")
-        else:
-            plt.show()
 
+    def visualize_and_save(self, directory, index):
+        plt.figure(figsize=(10, 10))
+        cmap = plt.cm.gray
+        norm = plt.Normalize(-1, 1)
+        plt.imshow(self.grid, cmap=cmap, norm=norm)
+        plt.colorbar(ticks=[-1, 0, 1], label="Cell Type")
+        plt.title(f"GridCreate {self.rows} x {self.cols} - Grid {index}")
+        plt.axis('off')
+        image_path = os.path.join(directory, f'grid_{index}.png')
+        plt.savefig(image_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
+def generate_and_save_grids(n=50, directory='generated_grids'):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    for i in range(n):
+        grid = GridCreate(101, 101)
+        np.save(os.path.join(directory, f'grid_{i}.npy'), grid.grid)
+        grid.visualize_and_save(directory, i)
 
 # Usage
-grid_world = GridCreate(101, 101)
-grid_world.visualize()
+generate_and_save_grids()
