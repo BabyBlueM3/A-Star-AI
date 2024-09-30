@@ -1,38 +1,46 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from binaryHeap import BinaryHeap
 
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 def find_unblocked_cell(grid):
-    attempts = 0
     while True:
         x, y = random.randint(0, grid.shape[0] - 1), random.randint(0, grid.shape[1] - 1)
         if grid[x][y] == 1:
-            print(f"Unblocked cell found at ({x}, {y}) after {attempts} attempts")
             return (x, y)
-        attempts += 1
-        if attempts > 10000:
-            raise Exception("Unable to find an unblocked cell, check grid initialization.")
 
-def a_star_search(grid, start, goal, BinaryHeap):
-    open_set = BinaryHeap()
-    open_set.push((0 + heuristic(start, goal), start))
+def repeated_a_star(grid, start, goal, binary_heap):
+    global path  # Define path as global to make it accessible in animate
+    path = []
+    current = start
+    open_set = binary_heap
+    while current != goal:
+        path_segment = a_star(grid, current, goal, open_set)
+        if not path_segment:
+            return None  # No path found
+        for point in path_segment:
+            if grid[point[0]][point[1]] == 0:  # Encounter unexpected obstacle
+                break
+            current = point
+            path.append(point)
+            if point == goal:
+                return path
+    return path
+
+def a_star(grid, start, goal, open_set):
     came_from = {}
     gscore = {start: 0}
     fscore = {start: heuristic(start, goal)}
+    open_set.push((fscore[start], start))
 
     while open_set:
-        current_score, current = open_set.pop()
+        _, current = open_set.pop()
         if current == goal:
-            path = [current]
-            while current in came_from:
-                current = came_from[current]
-                path.append(current)
-            path.reverse()
-            return path
+            return reconstruct_path(came_from, current)
 
         for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             neighbor = (current[0] + dx, current[1] + dy)
@@ -43,27 +51,37 @@ def a_star_search(grid, start, goal, BinaryHeap):
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
                     open_set.push((fscore[neighbor], neighbor))
+    return None
 
-    return None  # Return None if no path is found
+def reconstruct_path(came_from, current):
+    path = []
+    while current in came_from:
+        path.append(current)
+        current = came_from[current]
+    path.reverse()
+    return path
 
-def visualize_path(grid, path, start, goal):
-    plt.imshow(grid, cmap='gray')
-    for x, y in path:
-        plt.plot(y, x, 'ro')
-    plt.plot(start[1], start[0], 'go')
-    plt.plot(goal[1], goal[0], 'bo')
-    plt.grid(True)
-    plt.show()
+def animate(i):
+    global fig, ax
+    if i < len(path):
+        point = path[i]
+        ax.plot(point[1], point[0], 'ro')  # Update plot with new point
 
 def main():
+    global fig, ax
     grid_path = 'generated_grids/grid_0.npy'
     grid = np.load(grid_path)
     start = find_unblocked_cell(grid)
     goal = find_unblocked_cell(grid)
-    print("Start:", start, "Goal:", goal)
-    path = a_star_search(grid, start, goal, BinaryHeap)
+    binary_heap = BinaryHeap()
+    path = repeated_a_star(grid, start, goal, binary_heap)
     if path:
-        visualize_path(grid, path, start, goal)
+        fig, ax = plt.subplots()
+        ax.imshow(grid, cmap='gray')
+        ax.plot(start[1], start[0], 'go')  # Start in green
+        ax.plot(goal[1], goal[0], 'bo')  # Goal in blue
+        ani = FuncAnimation(fig, animate, frames=len(path), interval=200)
+        plt.show()
     else:
         print("No path found")
 
