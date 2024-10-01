@@ -134,7 +134,14 @@ def save_grids(num_environments=NUM_ENVIRONMENTS):
     for i in range(num_environments):
         grid = generate_grid()
         grids.append(grid)
+        
+        # Save the grid to a .txt file
+        filename = f'grid_{i}.txt'
+        np.savetxt(filename, grid, fmt='%d')  # Save as integers (0s and 1s)
+        print(f"Grid {i} saved as {filename}.")  # Optional: Print a message for confirmation
+
     return grids
+
 
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
