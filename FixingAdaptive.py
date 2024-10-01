@@ -134,12 +134,12 @@ def save_grids(num_environments=NUM_ENVIRONMENTS):
     for i in range(num_environments):
         grid = generate_grid()
         grids.append(grid)
-        
+        '''
         # Save the grid to a .txt file
         filename = f'grid_{i}.txt'
         np.savetxt(filename, grid, fmt='%d')  # Save as integers (0s and 1s)
         print(f"Grid {i} saved as {filename}.")  # Optional: Print a message for confirmation
-
+        '''
     return grids
 
 
@@ -225,13 +225,16 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
     print("No path found in Repeated A* search.")
     return None  # Returning None for consistency
 
-def repeated_backward_a_star(grid, start, goal):
+def repeated_backward_a_star_with_fog(grid, start, goal):
     global path  # Define path as global to make it accessible in animate
     path = []
     current = goal  # Start from the goal
+    gscore = {start: 0}
+    fscore = {start: heuristic(start, goal)}
     visibility_grid = initialize_visibility_grid(grid, start, goal)
 
-    open_set = BinaryHeap()
+    open_heap = BinaryHeap()
+    open_heap.push(fscore[start], gscore[start], start)
     while current != start:  # Search until we reach the start
         path_segment = a_star_search_with_fog(grid, visibility_grid, current, start)  # Search towards the start
         if not path_segment:
@@ -308,44 +311,84 @@ def adaptive_heuristic(state, goal):
         # Use the standard heuristic (e.g., Manhattan distance) if no updated value
         return heuristic(state, goal)
 
-def adaptive_a_star_search_with_fog(grid, start, goal):
+def adaptive_a_star_with_fog(grid, start, goal):
+    print(f"Start Position: {start}, Goal Position: {goal}")
     visibility_grid = initialize_visibility_grid(grid, start, goal)
+    current_pos = start
+    full_path = [start]
+
+    # First run of the adaptive A* search
+    partial_path = adaptive_a_star_search_with_fog(grid, visibility_grid, current_pos, goal)
+
+    if not partial_path:
+        print(f"No path found from {current_pos} to {goal}.")
+        return None  # Return None if no path found
+
+    # Update heuristics based on the found path
+    for i, step in enumerate(partial_path):
+        # Update heuristic values based on g-values found during the search
+        g_value = i  # Use the index as a g-value (could be improved)
+        updated_heuristics[step] = g_value
+
+    # Now run the adaptive A* search again with updated heuristics
+    print("Re-running adaptive A* search with updated heuristics...")
+    current_pos = start  # Reset current position
+    full_path = [start]  # Reset full path
+
+    while current_pos != goal:
+        # Perform A* search with fog of war using updated heuristics
+        partial_path = adaptive_a_star_search_with_fog(grid, visibility_grid, current_pos, goal)
+
+        if not partial_path:
+            print(f"No path found from {current_pos} to {goal}. Checking for alternatives.")
+            break  # For now, just break out if no path is found
+
+        for step in partial_path:
+            if grid[step[0], step[1]] == 1:  # Blocked cell
+                visibility_grid[step[0], step[1]] = 1  # Mark as seen
+                print(f"Blocked cell encountered at {step}. Re-planning from {current_pos}.")
+                break
+            else:
+                visibility_grid[step[0], step[1]] = 1  # Mark as seen
+                full_path.append(step)
+                current_pos = step
+                
+                # Reveal adjacent cells from the new position
+                reveal_adjacent_cells(current_pos, grid, visibility_grid)
+
+                # Check if goal is reached
+                if current_pos == goal:
+                    print("Goal reached!")
+                    return full_path
+
+    print("No valid path found after multiple attempts.")
+    return None  # Return None if no path found
+
+def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal):
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
     close_set = set()
     came_from = {}
     gscore = {start: 0}
-    
-    # Use the adaptive heuristic if available
-    fscore = {start: updated_heuristics.get(start, heuristic(start, goal))}
-    
+    fscore = {start: adaptive_heuristic(start, goal)}
+
     open_heap = BinaryHeap()
 
     # Push (fscore, gscore, node)
     open_heap.push(fscore[start], gscore[start], start)
-    
-    expanded_states = []  # Track states expanded during this search
-    
+
     while len(open_heap) > 0:
         current = open_heap.pop()  # Corrected to get just the item
-        
+
         if current == goal:
             path = []
             while current in came_from:
                 path.append(current)
                 current = came_from[current]
-            path = path[::-1]  # Reverse the path
-            
-            # Update the heuristic values for all expanded states
-            g_goal = gscore[goal]
-            for state in expanded_states:
-                updated_heuristics[state] = g_goal - gscore[state]
-            
-            return path  # Return the path and updated heuristic values
-        
+            return path[::-1]  # Return the reversed path
+
         close_set.add(current)
-        expanded_states.append(current)  # Mark this state as expanded
         reveal_adjacent_cells(current, grid, visibility_grid)
-        
+
         for i, j in neighbors:
             neighbor = (current[0] + i, current[1] + j)
             if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[1] < grid.shape[1]:
@@ -354,13 +397,8 @@ def adaptive_a_star_search_with_fog(grid, start, goal):
                     if tentative_g_score < gscore.get(neighbor, float('inf')):
                         came_from[neighbor] = current
                         gscore[neighbor] = tentative_g_score
-                        fscore[neighbor] = tentative_g_score + updated_heuristics.get(neighbor, heuristic(neighbor, goal))
-                        
-                        # Push (fscore, gscore, node) to the heap
+                        fscore[neighbor] = tentative_g_score + adaptive_heuristic(neighbor, goal)
                         open_heap.push(fscore[neighbor], gscore[neighbor], neighbor)  # Corrected push
-
-    return None  # Return None if no path found
-
 
 def visualize_path(grid, path):
     plt.imshow(grid, cmap='binary')
@@ -394,7 +432,7 @@ def main():
         print("No path found in Repeated A* with Fog.")
     # Run Repeated Backward A* with Fog
     start_time = time.time()
-    path_repeated_backward_a_star = repeated_backward_a_star(grid, start, goal)
+    path_repeated_backward_a_star = repeated_backward_a_star_with_fog(grid, start, goal)
     repeated_backward_a_star_time = time.time() - start_time
 
     if path_repeated_backward_a_star:
@@ -406,7 +444,7 @@ def main():
         
     # Run Adaptive A* with Fog
     start_time = time.time()
-    path_adaptive_a_star = adaptive_a_star_search_with_fog(grid, start, goal)
+    path_adaptive_a_star = adaptive_a_star_with_fog(grid, start, goal)
     adaptive_a_star_time = time.time() - start_time
 
     if path_adaptive_a_star:
@@ -420,7 +458,8 @@ def main():
 
     # Compare path lengths if all paths are found
     if path_repeated_a_star and path_adaptive_a_star and path_repeated_backward_a_star:
-        print(f"Path length comparison: Repeated A* ({len(path_repeated_a_star)}) vs Adaptive A* ({len(path_adaptive_a_star)}) vs Repeated Backward A* ({len(path_repeated_backward_a_star)})")
+       print(f"Path length comparison: Repeated A* ({len(path_repeated_a_star)}) vs Repeated Backward A* ({len(path_repeated_backward_a_star)}) vs Adaptive A* ({len(path_adaptive_a_star)})")
+
 
 
 if __name__ == "__main__":
