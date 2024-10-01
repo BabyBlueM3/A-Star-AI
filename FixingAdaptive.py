@@ -72,7 +72,7 @@ def load_grid(path):
     return np.load(path)
 
 # Constants
-GRID_SIZE = 101
+GRID_SIZE = 100
 NUM_ENVIRONMENTS = 50
 BLOCK_PROBABILITY = 0.3
 UNBLOCK_PROBABILITY = 0.7
@@ -226,34 +226,36 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
     return None  # Returning None for consistency
 
 def repeated_backward_a_star_with_fog(grid, start, goal):
-    global path  # Define path as global to make it accessible in animate
-    path = []
-    current = goal  # Start from the goal
-    gscore = {start: 0}
-    fscore = {start: heuristic(start, goal)}
+    global path
+    full_path = [start]
+    current = goal
+    current_pos = goal
     visibility_grid = initialize_visibility_grid(grid, start, goal)
 
-    open_heap = BinaryHeap()
-    open_heap.push(fscore[start], gscore[start], start)
-    while current != start:  # Search until we reach the start
-        path_segment = a_star_search_with_fog(grid, visibility_grid, current, start)  # Search towards the start
-        if not path_segment:
-            return None  # No path found
-        for point in path_segment:
-            if grid[point[0]][point[1]] == 1:  # Encounter unexpected obstacle
+    while current_pos != start:  # Search until we reach the start
+        partial_path = a_star_search_with_fog(grid, visibility_grid, current, start)  # Search towards the start
+        if not partial_path:
+            return []  # No path found
+
+        for step in partial_path:
+            if grid[step[0], step[1]] == 1:  # Blocked cell
+                visibility_grid[step[0], step[1]] = 1  # Mark as seen
+                print(f"Blocked cell encountered at {step}. Re-planning from {current_pos}.")
                 break
-            current = point
-            path.append(point)
-            visibility_grid[point[0]][point[1]] = 1  # Mark as seen
+            else:
+                visibility_grid[step[0], step[1]] = 1  # Mark as seen
+                full_path.append(step)
+                current_pos = step
+                
+                # Reveal adjacent cells from the new position
+                reveal_adjacent_cells(current_pos, grid, visibility_grid)
+        
+                # Check if goal is reached
+                if current_pos == goal:
+                    print("Goal reached!")
+                    return full_path
 
-            # Reveal adjacent cells from the new position
-            reveal_adjacent_cells(current, grid, visibility_grid)
-
-            if current == start:  # When we reach the start, return the path
-                return path
-    return path
-
-
+    return full_path
 def repeated_a_star_with_fog(grid, start, goal):
     print(f"Start Position: {start}, Goal Position: {goal}")
     visibility_grid = initialize_visibility_grid(grid, start, goal)
@@ -326,7 +328,6 @@ def adaptive_a_star_with_fog(grid, start, goal):
 
     # Update heuristics based on the found path
     for i, step in enumerate(partial_path):
-        # Update heuristic values based on g-values found during the search
         g_value = i  # Use the index as a g-value (could be improved)
         updated_heuristics[step] = g_value
 
@@ -364,13 +365,13 @@ def adaptive_a_star_with_fog(grid, start, goal):
     print("No valid path found after multiple attempts.")
     return None  # Return None if no path found
 
+
 def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal):
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
     close_set = set()
     came_from = {}
     gscore = {start: 0}
     fscore = {start: adaptive_heuristic(start, goal)}
-
     open_heap = BinaryHeap()
 
     # Push (fscore, gscore, node)
@@ -430,6 +431,7 @@ def main():
         print(f"Repeated A* Execution Time: {repeated_a_star_time:.3f} seconds")
     else:
         print("No path found in Repeated A* with Fog.")
+
     # Run Repeated Backward A* with Fog
     start_time = time.time()
     path_repeated_backward_a_star = repeated_backward_a_star_with_fog(grid, start, goal)
@@ -453,7 +455,6 @@ def main():
         print(f"Adaptive A* Execution Time: {adaptive_a_star_time:.3f} seconds")
     else:
         print("No path found in Adaptive A* with Fog.")
-
 
 
     # Compare path lengths if all paths are found
