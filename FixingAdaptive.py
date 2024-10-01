@@ -326,11 +326,6 @@ def adaptive_a_star_with_fog(grid, start, goal):
         print(f"No path found from {current_pos} to {goal}.")
         return None  # Return None if no path found
 
-    # Update heuristics based on the found path
-    for i, step in enumerate(partial_path):
-        g_value = i  # Use the index as a g-value (could be improved)
-        updated_heuristics[step] = g_value
-
     # Now run the adaptive A* search again with updated heuristics
     print("Re-running adaptive A* search with updated heuristics...")
     current_pos = start  # Reset current position
@@ -385,7 +380,15 @@ def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal):
             while current in came_from:
                 path.append(current)
                 current = came_from[current]
-            return path[::-1]  # Return the reversed path
+            path.reverse()  # Reverse the path for correct order
+            
+            # After finding the path, update heuristics for all explored nodes
+            g_goal = gscore[goal]  # g(s_goal)
+            for node in close_set:
+                # Update heuristic: 
+                updated_heuristics[node] = g_goal - gscore[node]
+
+            return path  # Return the found path
 
         close_set.add(current)
         reveal_adjacent_cells(current, grid, visibility_grid)
@@ -400,6 +403,7 @@ def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal):
                         gscore[neighbor] = tentative_g_score
                         fscore[neighbor] = tentative_g_score + adaptive_heuristic(neighbor, goal)
                         open_heap.push(fscore[neighbor], gscore[neighbor], neighbor)  # Corrected push
+
 
 def visualize_path(grid, path):
     plt.imshow(grid, cmap='binary')
