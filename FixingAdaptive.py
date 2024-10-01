@@ -227,7 +227,7 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
 
 def repeated_backward_a_star_with_fog(grid, start, goal):
     global path
-    full_path = [start]
+    full_path = [goal]
     current = goal
     current_pos = goal
     visibility_grid = initialize_visibility_grid(grid, start, goal)
@@ -253,9 +253,9 @@ def repeated_backward_a_star_with_fog(grid, start, goal):
                 # Check if goal is reached
                 if current_pos == goal:
                     print("Goal reached!")
-                    return full_path
+                    return full_path[::-1]
 
-    return full_path
+    return full_path[::-1]
 def repeated_a_star_with_fog(grid, start, goal):
     print(f"Start Position: {start}, Goal Position: {goal}")
     visibility_grid = initialize_visibility_grid(grid, start, goal)
@@ -416,6 +416,18 @@ def visualize_path(grid, path):
     plt.grid()
     plt.show()
 
+def visualize_path_reverse(grid, path):
+    plt.imshow(grid, cmap='binary')
+    for (x, y) in path:
+        plt.plot(y, x, 'ro')  # 'ro' to mark the path with red dots
+    plt.plot(path[-1][1], path[-1][0], 'go')  # Start (original goal) in blue
+    plt.plot(path[0][1], path[0][0], 'bo')  # Goal (original start) in green
+    plt.xlim(-0.5, grid.shape[1]-0.5)
+    plt.ylim(-0.5, grid.shape[0]-0.5)
+    plt.grid()
+    plt.show()
+
+
 def main():
     grids = save_grids(num_environments=NUM_ENVIRONMENTS)
     grid = grids[0]
@@ -442,7 +454,7 @@ def main():
     repeated_backward_a_star_time = time.time() - start_time
 
     if path_repeated_backward_a_star:
-        visualize_path(grid, path_repeated_backward_a_star)
+        visualize_path_reverse(grid, path_repeated_backward_a_star)
         print(f"Repeated Backward A* Path Length: {len(path_repeated_backward_a_star)}")
         print(f"Repeated Backward A* Execution Time: {repeated_backward_a_star_time:.3f} seconds")
     else:
