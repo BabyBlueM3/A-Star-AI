@@ -192,6 +192,7 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
     came_from = {}
     gscore = {start: 0}
     fscore = {start: heuristic(start, goal)}
+
     open_heap = BinaryHeap()
 
     # Push (fscore, gscore, node)
@@ -224,6 +225,30 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
     print("No path found in Repeated A* search.")
     return None  # Returning None for consistency
 
+def repeated_backward_a_star(grid, start, goal):
+    global path  # Define path as global to make it accessible in animate
+    path = []
+    current = goal  # Start from the goal
+    visibility_grid = initialize_visibility_grid(grid, start, goal)
+
+    open_set = BinaryHeap()
+    while current != start:  # Search until we reach the start
+        path_segment = a_star_search_with_fog(grid, visibility_grid, current, start)  # Search towards the start
+        if not path_segment:
+            return None  # No path found
+        for point in path_segment:
+            if grid[point[0]][point[1]] == 1:  # Encounter unexpected obstacle
+                break
+            current = point
+            path.append(point)
+            visibility_grid[point[0]][point[1]] = 1  # Mark as seen
+
+            # Reveal adjacent cells from the new position
+            reveal_adjacent_cells(current, grid, visibility_grid)
+
+            if current == start:  # When we reach the start, return the path
+                return path
+    return path
 
 
 def repeated_a_star_with_fog(grid, start, goal):
@@ -356,8 +381,6 @@ def main():
 
     print(f"Grid dimensions: {grid.shape}, Start: {start}, Goal: {goal}")
 
-
-
     # Run Repeated A* with Fog
     start_time = time.time()
     path_repeated_a_star = repeated_a_star_with_fog(grid, start, goal)
@@ -369,7 +392,18 @@ def main():
         print(f"Repeated A* Execution Time: {repeated_a_star_time:.3f} seconds")
     else:
         print("No path found in Repeated A* with Fog.")
+    # Run Repeated Backward A* with Fog
+    start_time = time.time()
+    path_repeated_backward_a_star = repeated_backward_a_star(grid, start, goal)
+    repeated_backward_a_star_time = time.time() - start_time
 
+    if path_repeated_backward_a_star:
+        visualize_path(grid, path_repeated_backward_a_star)
+        print(f"Repeated Backward A* Path Length: {len(path_repeated_backward_a_star)}")
+        print(f"Repeated Backward A* Execution Time: {repeated_backward_a_star_time:.3f} seconds")
+    else:
+        print("No path found in Repeated Backward A* with Fog.")
+        
     # Run Adaptive A* with Fog
     start_time = time.time()
     path_adaptive_a_star = adaptive_a_star_search_with_fog(grid, start, goal)
@@ -382,9 +416,12 @@ def main():
     else:
         print("No path found in Adaptive A* with Fog.")
 
-    # Compare path lengths if both paths are found
-    if path_repeated_a_star and path_adaptive_a_star:
-        print(f"Path length comparison: Repeated A* ({len(path_repeated_a_star)}) vs Adaptive A* ({len(path_adaptive_a_star)})")
+
+
+    # Compare path lengths if all paths are found
+    if path_repeated_a_star and path_adaptive_a_star and path_repeated_backward_a_star:
+        print(f"Path length comparison: Repeated A* ({len(path_repeated_a_star)}) vs Adaptive A* ({len(path_adaptive_a_star)}) vs Repeated Backward A* ({len(path_repeated_backward_a_star)})")
+
 
 if __name__ == "__main__":
     main()
