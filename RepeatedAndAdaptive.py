@@ -67,7 +67,7 @@ def load_grid(path):
     return np.load(path)
 
 # Constants
-GRID_SIZE = 101
+GRID_SIZE = 50
 NUM_ENVIRONMENTS = 50
 BLOCK_PROBABILITY = 0.3
 UNBLOCK_PROBABILITY = 0.7
@@ -175,6 +175,9 @@ def reveal_adjacent_cells(pos, grid, visibility_grid):
 
 
 def a_star_search_with_fog(grid, visibility_grid, start, goal):
+    plt.ion()  # Turn on interactive mode for real-time updates
+    fig, ax = plt.subplots()  # Create a single figure and axes for updates
+
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
     close_set = set()
     came_from = {}
@@ -182,18 +185,17 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
     fscore = {start: heuristic(start, goal)}
     open_heap = BinaryHeap()
     open_heap.push((fscore[start], start))
+    path = []
 
     while len(open_heap) > 0:
         current = open_heap.pop()[1]
-
-        # Print heuristic value when visiting the node
-        print(f"Repeated A* Visiting Node: {current}, Heuristic: {heuristic(current, goal)}")
+        path.append(current)  # Append current node to path
+        fig, ax = visualize_step(grid, path, current, fig, ax)  # Visualize each step using the same figure and axes
 
         if current == goal:
-            path = []
-            while current in came_from:
-                path.append(current)
-                current = came_from[current]
+            plt.ioff()  # Turn off interactive mode
+            visualize_step(grid, path, current, fig, ax)  # Visualize final path
+            plt.show()  # Ensure the final path is shown
             return path[::-1]  # Return the reversed path
 
         close_set.add(current)
@@ -207,11 +209,14 @@ def a_star_search_with_fog(grid, visibility_grid, start, goal):
                     if tentative_g_score < gscore.get(neighbor, float('inf')):
                         came_from[neighbor] = current
                         gscore[neighbor] = tentative_g_score
-                        fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                        open_heap.push((fscore[neighbor], neighbor))
+                        fscore_neighbor = tentative_g_score + heuristic(neighbor, goal)
+                        if neighbor not in close_set:
+                            open_heap.push((fscore_neighbor, neighbor))
 
-    print("No path found in Repeated A* search.")
+    plt.ioff()  # Make sure to turn off interactive mode if no path is found
+    print("No path found in A* search.")
     return False  # No path found
+
 
 def repeated_a_star_with_fog(grid, start, goal):
     visibility_grid = initialize_visibility_grid(grid, start, goal)
@@ -258,35 +263,32 @@ def repeated_a_star_with_fog(grid, start, goal):
     print("No valid path found after multiple attempts.")
     return None  # Return None if no path found
 def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal, h_values):
+    plt.ion()  # Turn on interactive mode for real-time updates
+    fig, ax = plt.subplots()  # Create a single figure and axes for updates
+
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
     close_set = set()
     came_from = {}
     gscore = {start: 0}
     fscore = {start: h_values.get(start, heuristic(start, goal))}
     open_heap = BinaryHeap()
-    open_heap.push((fscore, start))
-    expanded_nodes = []  # To track expanded nodes for heuristic updates
+    open_heap.push((fscore[start], start))
+    path = []
 
     while len(open_heap) > 0:
         current = open_heap.pop()[1]
-        expanded_nodes.append(current)
-
-        # Print heuristic value when visiting the node
-        print(f"Adaptive A* Visiting Node: {current}, Heuristic: {h_values.get(current, heuristic(current, goal))}")
+        path.append(current)  # Append current node to path
+        fig, ax = visualize_step(grid, path, current, fig, ax)  # Visualize each step using the same figure and axes
 
         if current == goal:
             g_goal = gscore[current]  # Store the g-score of the goal
-            print(f"Goal reached at {current} with g-score {g_goal}!")
-
             # Update h-values of all expanded nodes based on the new learned cost from goal
-            for node in expanded_nodes:
+            for node in close_set:
                 h_values[node] = g_goal - gscore[node]  # Update heuristic with learned cost
 
-            # Reconstruct path
-            path = []
-            while current in came_from:
-                path.append(current)
-                current = came_from[current]
+            plt.ioff()  # Turn off interactive mode
+            visualize_step(grid, path, current, fig, ax)  # Visualize final path
+            plt.show()  # Ensure the final path is shown
             return path[::-1]  # Return the reversed path
 
         close_set.add(current)
@@ -300,17 +302,13 @@ def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal, h_values
                     if tentative_g_score < gscore.get(neighbor, float('inf')):
                         came_from[neighbor] = current
                         gscore[neighbor] = tentative_g_score
-                        fscore = tentative_g_score + h_values.get(neighbor, heuristic(neighbor, goal))
+                        fscore_neighbor = tentative_g_score + h_values.get(neighbor, heuristic(neighbor, goal))
+                        if neighbor not in close_set:
+                            open_heap.push((fscore_neighbor, neighbor))
 
-                        # Update heuristic dynamically for the neighbor
-                        h_values[neighbor] = max(h_values.get(neighbor, 0), tentative_g_score)
-
-                        open_heap.push((fscore, neighbor))
-
+    plt.ioff()  # Make sure to turn off interactive mode if no path is found
     print("No path found in Adaptive A* search.")
     return False  # No path found
-
-
 
 def visualize_path(grid, path):
     plt.imshow(grid, cmap='binary')
@@ -323,6 +321,23 @@ def visualize_path(grid, path):
     plt.grid()
     plt.show()
 
+
+def visualize_step(grid, path, current_pos=None, fig=None, ax=None):
+    if fig is None or ax is None:
+        plt.close('all')  # Close all existing figures to ensure no old figures are left open
+        fig, ax = plt.subplots()
+    ax.clear()  # Clear the axes to redraw
+    ax.imshow(grid, cmap='binary', interpolation='none', alpha=0.6)
+    if path:
+        path_x, path_y = zip(*path)  # Unzip the path into x and y coordinates
+        ax.plot(path_y, path_x, 'ro-', markersize=5, linewidth=2)  # Draw path with lines connecting dots
+    if current_pos:
+        ax.plot(current_pos[1], current_pos[0], 'bo', markersize=10)  # Current position in blue
+    ax.grid(True)
+    plt.draw()
+    plt.pause(0.1)  # Short pause to update the plot
+    return fig, ax  # Return figure and axes for further updates
+    
 def main():
     grids = save_grids(num_environments=NUM_ENVIRONMENTS)
     grid = grids[0]
