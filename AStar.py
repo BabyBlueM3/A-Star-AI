@@ -1,3 +1,10 @@
+""" 
+NETIDs:
+William Tran: WHT12
+Yash Patel: ydp11
+Dylan Jay: drj74
+"""
+
 import numpy as np
 import sys
 import random
