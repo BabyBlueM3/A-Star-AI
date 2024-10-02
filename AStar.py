@@ -538,84 +538,18 @@ def visualize_path(grid, path):
     plt.ylim(-0.5, grid.shape[0]-0.5)
     plt.grid()
     plt.show()
-'''
-def main():
-    #grids = save_grids(num_environments=NUM_ENVIRONMENTS)
-    save_grids(num_environments=NUM_ENVIRONMENTS)
-    # Load grids from a folder
-    folder_path = input("Enter the folder path containing the grids: ")
-    grids, grid_files = load_grids_from_folder(folder_path)
-    if grids:
-           while True:
-            # List the grids and allow user to choose one
-            print("\nAvailable grids:")
-            for idx, filename in enumerate(grid_files):
-                print(f"{idx + 1}. {filename}")
-            print("Enter 0 to exit.")
 
-            # User input for grid selection
-            selected_idx = int(input("Enter the number corresponding to the grid you want to use (or 0 to exit): ")) - 1
+def visualize_path_backward(grid, path):
+    plt.imshow(grid, cmap='binary')
+    for (x, y) in path:
+        plt.plot(y, x, 'ro')  # 'ro' to mark the path with red dots
+    plt.plot(path[0][1], path[0][0], 'bo')  # Start in green
+    plt.plot(path[-1][1], path[-1][0], 'go')  # Goal in blue
+    plt.xlim(-0.5, grid.shape[1]-0.5)
+    plt.ylim(-0.5, grid.shape[0]-0.5)
+    plt.grid()
+    plt.show()
 
-            if selected_idx == -1:
-                print("Exiting.")
-                break  # Exit if the user enters 0
-
-            if 0 <= selected_idx < len(grids):
-                grid = grids[selected_idx][1]  # Get the grid corresponding to the selected index
-                print(f"You selected: {grid_files[selected_idx]}")
-
-                # Find start and goal cells
-                start = find_unblocked_cell(grid)
-                goal = find_unblocked_cell(grid)
-                while goal == start:
-                    goal = find_unblocked_cell(grid)
-
-                print(f"Grid size: {grid.shape}, Start: {start}, Goal: {goal}")
-                # Run Repeated A* with Fog
-                start_time = time.time()
-                path_repeated_a_star = repeated_a_star_with_fog(grid, start, goal)
-                repeated_a_star_time = time.time() - start_time
-
-                if path_repeated_a_star:
-                    visualize_path(grid, path_repeated_a_star)
-                    print(f"Repeated A* Path Length: {len(path_repeated_a_star)}")
-                    print(f"Repeated A* Execution Time: {repeated_a_star_time:.3f} seconds")
-                else:
-                    print("No path found in Repeated A* with Fog.")
-
-                # Run Repeated Backward A* with Fog
-                start_time = time.time()
-                path_repeated_backward_a_star = repeated_backward_a_star_with_fog(grid, start, goal)
-                repeated_backward_a_star_time = time.time() - start_time
-
-                if path_repeated_backward_a_star:
-                    visualize_path(grid, path_repeated_backward_a_star)
-                    print(f"Repeated Backward A* Path Length: {len(path_repeated_backward_a_star)}")
-                    print(f"Repeated Backward A* Execution Time: {repeated_backward_a_star_time:.3f} seconds")
-                else:
-                    print("No path found in Repeated Backward A* with Fog.")
-                    
-                # Run Adaptive A* with Fog
-                start_time = time.time()
-                path_adaptive_a_star = adaptive_a_star_with_fog(grid, start, goal)
-                adaptive_a_star_time = time.time() - start_time
-
-                if path_adaptive_a_star:
-                    visualize_path(grid, path_adaptive_a_star)
-                    print(f"Adaptive A* Path Length: {len(path_adaptive_a_star)}")
-                    print(f"Adaptive A* Execution Time: {adaptive_a_star_time:.3f} seconds")
-                else:
-                    print("No path found in Adaptive A* with Fog.")
-
-
-                # Compare path lengths if all paths are found
-                if path_repeated_a_star and path_adaptive_a_star and path_repeated_backward_a_star:
-                   print(f"Path length comparison: Repeated A* ({len(path_repeated_a_star)}) vs Repeated Backward A* ({len(path_repeated_backward_a_star)}) vs Adaptive A* ({len(path_adaptive_a_star)})")
-
-               
-            else:
-                print("Invalid selection. Please select a valid grid number or enter 0 to exit.")
-'''
 def main():
     # Generate and save grids
     save_grids(num_environments=NUM_ENVIRONMENTS)
@@ -682,7 +616,7 @@ def main():
                         print("No path found in Repeated A* Low G.")
                     
                     if path_backward:
-                        visualize_path(grid, path_backward)
+                        visualize_path_backward(grid, path_backward)
                         print(f"Repeated Backward A* Path Length: {len(path_backward)}, Time: {time_backward:.3f} seconds")
                     else:
                         print("No path found in Repeated Backward A*.")
