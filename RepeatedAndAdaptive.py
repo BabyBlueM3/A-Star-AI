@@ -67,7 +67,7 @@ def load_grid(path):
     return np.load(path)
 
 # Constants
-GRID_SIZE = 75
+GRID_SIZE = 300
 NUM_ENVIRONMENTS = 50
 BLOCK_PROBABILITY = 0.3
 UNBLOCK_PROBABILITY = 0.7
@@ -272,55 +272,55 @@ def repeated_a_star_with_fog(grid, start, goal):
 
 
 
-def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal, h_values):
-    plt.ion()
-    fig, ax = plt.subplots()
+# def adaptive_a_star_search_with_fog(grid, visibility_grid, start, goal, h_values):
+#     plt.ion()
+#     fig, ax = plt.subplots()
 
-    open_heap = BinaryHeap()
-    open_heap.push((h_values.get(start, heuristic(start, goal)), start))
-    came_from = {}
-    gscore = {start: 0}
-    fscore = {start: h_values.get(start, heuristic(start, goal))}
-    close_set = set()
+#     open_heap = BinaryHeap()
+#     open_heap.push((h_values.get(start, heuristic(start, goal)), start))
+#     came_from = {}
+#     gscore = {start: 0}
+#     fscore = {start: h_values.get(start, heuristic(start, goal))}
+#     close_set = set()
 
-    while len(open_heap) > 0:
-        current_f, current = open_heap.pop()
+#     while len(open_heap) > 0:
+#         current_f, current = open_heap.pop()
 
-        # If we reached the goal
-        if current == goal:
-            path = reconstruct_path(came_from, current)
+#         # If we reached the goal
+#         if current == goal:
+#             path = reconstruct_path(came_from, current)
 
-            # Now update the heuristic values based on the learned cost
-            g_goal = gscore[current]  # The actual cost to reach the goal
-            for node in close_set:  # Update the heuristic for all expanded nodes
-                h_values[node] = g_goal - gscore[node]  # h(goal) should be 0, others based on learned costs
+#             # Now update the heuristic values based on the learned cost
+#             g_goal = gscore[current]  # The actual cost to reach the goal
+#             for node in close_set:  # Update the heuristic for all expanded nodes
+#                 h_values[node] = g_goal - gscore[node]  # h(goal) should be 0, others based on learned costs
 
-            plt.ioff()
-            visualize_path(grid, path)
-            return path
+#             plt.ioff()
+#             visualize_path(grid, path)
+#             return path
 
-        close_set.add(current)
+#         close_set.add(current)
 
-        for i, j in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            neighbor = (current[0] + i, current[1] + j)
-            if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[1] < grid.shape[1]:
-                if grid[neighbor[0]][neighbor[1]] == 1 or neighbor in close_set:
-                    continue
+#         for i, j in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+#             neighbor = (current[0] + i, current[1] + j)
+#             if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[1] < grid.shape[1]:
+#                 if grid[neighbor[0]][neighbor[1]] == 1 or neighbor in close_set:
+#                     continue
 
-                tentative_g_score = gscore[current] + 1
-                if tentative_g_score < gscore.get(neighbor, float('inf')):
-                    came_from[neighbor] = current
-                    gscore[neighbor] = tentative_g_score
-                    # Use the updated heuristic from h_values
-                    fscore[neighbor] = tentative_g_score + h_values.get(neighbor, heuristic(neighbor, goal))
-                    if neighbor not in [item[1] for item in open_heap.heap]:
-                        open_heap.push((fscore[neighbor], neighbor))
+#                 tentative_g_score = gscore[current] + 1
+#                 if tentative_g_score < gscore.get(neighbor, float('inf')):
+#                     came_from[neighbor] = current
+#                     gscore[neighbor] = tentative_g_score
+#                     # Use the updated heuristic from h_values
+#                     fscore[neighbor] = tentative_g_score + h_values.get(neighbor, heuristic(neighbor, goal))
+#                     if neighbor not in [item[1] for item in open_heap.heap]:
+#                         open_heap.push((fscore[neighbor], neighbor))
 
-        visualize_step(grid, came_from.keys(), current, fig, ax)
+#         visualize_step(grid, came_from.keys(), current, fig, ax)
 
-    plt.ioff()
-    print("No path found in Adaptive A* search.")
-    return False
+#     plt.ioff()
+#     print("No path found in Adaptive A* search.")
+#     return False
 
 
 def reconstruct_path(came_from, current):
