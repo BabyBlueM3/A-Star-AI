@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 import random
 import matplotlib.pyplot as plt
 import os
@@ -123,24 +124,33 @@ def generate_grid():
 
     return grid
 
+def load_grid(filename):
+    try:
+        # Assuming the grid is saved as a NumPy array text file
+        return np.loadtxt(filename)
+    except Exception as e:
+        print(f"Error loading the grid from {filename}: {e}")
+        return None
+
 def visualize_grid(grid):
-    # Create a visual representation of the grid where 1 = blocked and 0 = unblocked
-    plt.imshow(grid, cmap='binary', interpolation='none')
-    plt.title('Gridworld')
-    plt.show()
+    if grid is not None:
+        plt.imshow(grid, cmap='binary', interpolation='none')
+        plt.title('Gridworld')
+        plt.show()
+    else:
+        print("No grid to display.")
+
     
 def save_grids(num_environments=NUM_ENVIRONMENTS):
     grids = []
     for i in range(num_environments):
         grid = generate_grid()
         grids.append(grid)
-        
         # Save the grid to a .txt file
         filename = f'grid_{i}.txt'
         np.savetxt(filename, grid, fmt='%d')  # Save as integers (0s and 1s)
-        print(f"Grid {i} saved as {filename}.")  # Optional: Print a message for confirmation
-        
-    #return grids
+        print(f"Grid {i} saved as {filename}.")
+    return grids
 
 def load_grid(path):
     try:
@@ -521,13 +531,13 @@ def main():
                 print("Invalid selection. Please select a valid grid number or enter 0 to exit.")
 '''
 def main():
-    # Save grids or load them from a folder
-    # Uncomment this line if you want to save grids again
-    # save grids
+    # Generate and save grids
     save_grids(num_environments=NUM_ENVIRONMENTS)
-    folder_path = input("Enter the folder path containing the grids: ")
-    grids, grid_files = load_grids_from_folder(folder_path)
+    
+    # Assuming the grids are stored in the same directory as the script
+    folder_path = os.path.dirname(os.path.realpath(__file__))
 
+    grids, grid_files = load_grids_from_folder(folder_path)
     if grids is not None:
         while True:
             # List the grids and allow user to choose one
@@ -536,19 +546,16 @@ def main():
                 print(f"{idx + 1}. {filename}")
             print("Enter 0 to exit.")
 
-            # User input for grid selection
             try:
                 selected_idx = int(input("Enter the number corresponding to the grid you want to use (or 0 to exit): ")) - 1
-
                 if selected_idx == -1:
                     print("Exiting.")
                     break  # Exit if the user enters 0
 
                 if 0 <= selected_idx < len(grids):
-                    grid = grids[selected_idx]  # Get the grid array directly
+                    grid = grids[selected_idx]
                     print(f"You selected: {grid_files[selected_idx]}")
 
-                    # Find start and goal cells
                     start = find_unblocked_cell(grid)
                     goal = find_unblocked_cell(grid)
                     while goal == start:
@@ -556,52 +563,30 @@ def main():
 
                     print(f"Grid size: {grid.shape}, Start: {start}, Goal: {goal}")
                     
-                    # Run Repeated A* with Fog
-                    start_time = time.time()
                     path_repeated_a_star = repeated_a_star_with_fog(grid, start, goal)
-                    repeated_a_star_time = time.time() - start_time
-
                     if path_repeated_a_star:
                         visualize_path(grid, path_repeated_a_star)
                         print(f"Repeated A* Path Length: {len(path_repeated_a_star)}")
-                        print(f"Repeated A* Execution Time: {repeated_a_star_time:.3f} seconds")
                     else:
                         print("No path found in Repeated A* with Fog.")
-
-                    # Run Repeated Backward A* with Fog
-                    start_time = time.time()
+                    
                     path_repeated_backward_a_star = repeated_backward_a_star_with_fog(grid, start, goal)
-                    repeated_backward_a_star_time = time.time() - start_time
-
                     if path_repeated_backward_a_star:
                         visualize_path(grid, path_repeated_backward_a_star)
                         print(f"Repeated Backward A* Path Length: {len(path_repeated_backward_a_star)}")
-                        print(f"Repeated Backward A* Execution Time: {repeated_backward_a_star_time:.3f} seconds")
                     else:
                         print("No path found in Repeated Backward A* with Fog.")
 
-                    # Run Adaptive A* with Fog
-                    start_time = time.time()
                     path_adaptive_a_star = adaptive_a_star_with_fog(grid, start, goal)
-                    adaptive_a_star_time = time.time() - start_time
-
                     if path_adaptive_a_star:
                         visualize_path(grid, path_adaptive_a_star)
                         print(f"Adaptive A* Path Length: {len(path_adaptive_a_star)}")
-                        print(f"Adaptive A* Execution Time: {adaptive_a_star_time:.3f} seconds")
                     else:
                         print("No path found in Adaptive A* with Fog.")
-
-                    # Compare path lengths if all paths are found
-                    if (path_repeated_a_star and path_adaptive_a_star and 
-                            path_repeated_backward_a_star):
-                        print(f"Path length comparison: Repeated A* ({len(path_repeated_a_star)}) vs "
-                              f"Repeated Backward A* ({len(path_repeated_backward_a_star)}) vs "
-                              f"Adaptive A* ({len(path_adaptive_a_star)})")
                 else:
                     print("Invalid selection. Please select a valid grid number or enter 0 to exit.")
-
             except ValueError:
                 print("Invalid input. Please enter a valid number.")
+
 if __name__ == "__main__":
     main()
