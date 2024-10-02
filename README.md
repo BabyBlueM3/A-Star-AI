@@ -13,7 +13,7 @@ Dylan Jay: drj74<br>
 
 <li>To run:</li>
 <li>Type py AStar.py in terminal</li>
-<li>You will be given a list of grids to choose from. Select any number from 1-49.</li>
+<li>You will be given a list of grids to choose from. Select any number from 1-50.</li>
 <li>You will see the first grid which will be the Repeated A* search with high g_score tie-breaking</li>
 <li>When you close out of this matplotlib drawing, you will have another pop up, this will be Repeated A* search with low g_score tie-breaking</li>
 <li>When you close out of this next drawing, you will have another which will be backwards Repeated A* search</li>
